@@ -18,7 +18,7 @@ void send_frame(Frame *frame) {
 }
 
 void sliding_window_arq(Frame *frames, int frame_count) {
-    int base = 0, next_seq_num = 0;
+    int base = 0;
     while (base < frame_count) {
         for (int i = base; i < base + WINDOW_SIZE && i < frame_count; i++)
             if (!frames[i].ack_received) send_frame(&frames[i]);
