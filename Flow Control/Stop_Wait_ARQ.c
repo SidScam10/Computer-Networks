@@ -4,12 +4,11 @@
 #include <string.h>
 #include <time.h>
 
-#define WINDOW_SIZE 4
+#define TIMEOUT 2
 
 typedef struct {
     int sequence_number;
     char data[1024];
-    bool ack_received;
 } Frame;
 
 void send_frame(Frame *frame) {
@@ -17,36 +16,30 @@ void send_frame(Frame *frame) {
     sleep(1);
 }
 
-void sliding_window_arq(Frame *frames, int frame_count) {
-    int base = 0, next_seq_num = 0;
-    while (base < frame_count) {
-        for (int i = base; i < base + WINDOW_SIZE && i < frame_count; i++)
-            if (!frames[i].ack_received) send_frame(&frames[i]);
-        for (int i = base; i < base + WINDOW_SIZE && i < frame_count; i++) {
-            if (rand() % 10 < 7) {
-                printf("ACK %d received\n", frames[i].sequence_number);
-                frames[i].ack_received = true;
-                base++;
-            } else {
-                printf("ACK not received. Resending frame %d...\n", frames[i].sequence_number);
-            }
+void stop_and_wait_arq(Frame *frame) {
+    bool ack_received = false;
+    while (!ack_received) {
+        send_frame(frame);
+        if (rand() % 10 < 7) {
+            printf("ACK %d received\n", frame->sequence_number);
+            ack_received = true;
+        } else {
+            printf("ACK not received. Resending frame...\n");
         }
     }
 }
 
 int main() {
-    int frame_count;
-    printf("Enter the number of frames: ");
-    scanf("%d", &frame_count);
-    Frame *frames = (Frame *)malloc(frame_count * sizeof(Frame));
+    Frame frame;
+    int sequence_number = 0;
     srand(time(NULL));
-    for (int i = 0; i < frame_count; i++) {
-        printf("Enter data for Frame %d: ", i);
-        scanf("%s", frames[i].data);
-        frames[i].sequence_number = i;
-        frames[i].ack_received = false;
+    while (1) {
+        printf("Enter data to send ('exit' to quit): ");
+        scanf("%s", frame.data);
+        if (!strcmp(frame.data, "exit")) break;
+        frame.sequence_number = sequence_number;
+        stop_and_wait_arq(&frame);
+        sequence_number = 1 - sequence_number;
     }
-    sliding_window_arq(frames, frame_count);
-    free(frames);
     return 0;
 }
